@@ -1,5 +1,6 @@
 #include "line2Dup.h"
 #include <iostream>
+#include <cstring>
 
 using namespace std;
 using namespace cv;
@@ -1509,3 +1510,46 @@ void Detector::writeClasses(const std::string &format) const
 }
 
 } // namespace line2Dup
+
+// C wrapper functions for Python ctypes
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void* Detector_new() {
+    return new line2Dup::Detector();
+}
+
+void* Detector_new_with_params(int num_features, int* T, int T_size, float weak_thresh, float strong_thresh) {
+    std::vector<int> T_vec(T, T + T_size);
+    return new line2Dup::Detector(num_features, T_vec, weak_thresh, strong_thresh);
+}
+
+void Detector_delete(void* detector) {
+    delete static_cast<line2Dup::Detector*>(detector);
+}
+
+int Detector_addTemplate(void* detector, unsigned char* image_data, int width, int height, int channels, const char* class_id, unsigned char* mask_data, int mask_width, int mask_height, int num_features) {
+    cv::Mat image(height, width, channels == 3 ? CV_8UC3 : CV_8UC1, image_data);
+    cv::Mat mask;
+    if (mask_data != nullptr) {
+        mask = cv::Mat(mask_height, mask_width, CV_8UC1, mask_data);
+    }
+    std::string class_id_str(class_id);
+    return static_cast<line2Dup::Detector*>(detector)->addTemplate(image, class_id_str, mask, num_features);
+}
+
+int Detector_match(void* detector, unsigned char* image_data, int width, int height, int channels, float threshold, line2Dup::Match* matches, int max_matches) {
+    cv::Mat image(height, width, channels == 3 ? CV_8UC3 : CV_8UC1, image_data);
+    std::vector<line2Dup::Match> matches_vec;
+    matches_vec = static_cast<line2Dup::Detector*>(detector)->match(image, threshold);
+    int num_matches = std::min(static_cast<int>(matches_vec.size()), max_matches);
+    for (int i = 0; i < num_matches; ++i) {
+        matches[i] = matches_vec[i];
+    }
+    return num_matches;
+}
+
+#ifdef __cplusplus
+}
+#endif
