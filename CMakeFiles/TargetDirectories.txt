@@ -1,0 +1,4 @@
+/Volumes/T7/AI/shape_based_matching/CMakeFiles/shape_based_matching_test.dir
+/Volumes/T7/AI/shape_based_matching/CMakeFiles/template_creator.dir
+/Volumes/T7/AI/shape_based_matching/CMakeFiles/edit_cache.dir
+/Volumes/T7/AI/shape_based_matching/CMakeFiles/rebuild_cache.dir
