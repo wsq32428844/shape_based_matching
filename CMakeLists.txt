@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.5)
 set (CMAKE_CXX_STANDARD 14)
 project(shape_based_matching)
 
@@ -8,7 +8,10 @@ SET(CMAKE_BUILD_TYPE "Release")
 
 
 # arm or x86
-IF(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+IF(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm64")
+    # Apple Silicon, no need for mfpu=neon (enabled by default)
+    SET(PLATFORM_COMPILE_FLAGS "")
+ELSEIF(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
     SET(PLATFORM_COMPILE_FLAGS "-mfpu=neon")
 ELSE()
     SET(PLATFORM_COMPILE_FLAGS "-march=native")
@@ -19,15 +22,14 @@ ELSE()
 ENDIF()
 
 # SET(PLATFORM_COMPILE_FLAGS "-DMIPP_NO_INTRINSICS")  # close SIMD
-SET(COMMON_COMPILE_FLAGS "-fopenmp -Wall -Wno-sign-compare")
+SET(COMMON_COMPILE_FLAGS "-Wall -Wno-sign-compare")
 SET(CMAKE_CXX_FLAGS "${PLATFORM_COMPILE_FLAGS} ${COMMON_COMPILE_FLAGS} $ENV{CXXFLAGS}")
 SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -g2 -ggdb")
 SET(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 
 # opencv
-set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} /opt/ros/kinetic)
-find_package(OpenCV 3 REQUIRED)
+find_package(OpenCV 4 REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 
@@ -38,4 +40,8 @@ include_directories (${INCLUDE_DIRECTORIES} "${CMAKE_CURRENT_SOURCE_DIR}/MIPP/")
 # test exe
 add_executable(${PROJECT_NAME}_test line2Dup.cpp test.cpp)
 target_link_libraries(${PROJECT_NAME}_test ${OpenCV_LIBS})
+
+# template creator exe
+add_executable(template_creator line2Dup.cpp template_creator.cpp)
+target_link_libraries(template_creator ${OpenCV_LIBS})
 
