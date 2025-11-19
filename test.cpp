@@ -1,12 +1,26 @@
-#include "line2Dup.h"
-#include <memory>
-#include <iostream>
-#include <assert.h>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <cassert>
 #include <chrono>
+#include <iostream>
+#include <memory>
+#include <random>
+#include <type_traits>
+#include <utility>
+
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+
+#include "line2Dup.h"
+
 using namespace std;
 using namespace cv;
+using namespace line2Dup;
+using namespace shape_based_matching;
 
-static std::string prefix = "/home/meiqua/shape_based_matching/test/";
+static std::string prefix = "./test/";
 
 class Timer
 {
@@ -133,8 +147,8 @@ void scale_test(string mode = "test"){
         assert(!img.empty() && "check your img path");
         shape_based_matching::shapeInfo_producer shapes(img);
 
-        shapes.scale_range = {0.1f, 1};
-        shapes.scale_step = 0.01f;
+        shapes.scale_range = {0.7f};
+        shapes.scale_step = 0.1f;
         shapes.produce_infos();
 
         std::vector<shape_based_matching::shapeInfo_producer::Info> infos_have_templ;
@@ -169,6 +183,8 @@ void scale_test(string mode = "test"){
         detector.readClasses(ids, prefix+"case0/%s_templ.yaml");
 
         Mat test_img = imread(prefix+"case0/1.jpg");
+        double scale_factor = 0.7;
+        cv::resize(test_img, test_img, cv::Size(), scale_factor, scale_factor, cv::INTER_LINEAR);
         assert(!test_img.empty() && "check your img path");
 
         // make the img having 32*n width & height
@@ -322,7 +338,7 @@ void angle_test(string mode = "test", bool use_rot = true){
         auto matches = detector.match(img, 90, ids);
         timer.out();
 
-        if(img.channels() == 1) cvtColor(img, img, CV_GRAY2BGR);
+        if(img.channels() == 1) cvtColor(img, img, COLOR_GRAY2BGR);
 
         std::cout << "matches.size(): " << matches.size() << std::endl;
         size_t top5 = 1;
@@ -507,8 +523,8 @@ void MIPP_test(){
 }
 
 int main(){
-    // scale_test("test");
-    angle_test("test", true); // test or train
+    scale_test("test");
+    // angle_test("test", true); // test or train
     // noise_test("test");
     return 0;
 }

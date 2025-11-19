@@ -1,11 +1,16 @@
 #ifndef CXXLINEMOD_H
 #define CXXLINEMOD_H
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include <string>
+#include <vector>
 #include <map>
+#include <type_traits>
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 #include "mipp.h"  // for SIMD in different platforms
+
+using namespace cv;
 
 namespace line2Dup
 {
@@ -17,8 +22,8 @@ struct Feature
     int label;
     float theta;
 
-    void read(const cv::FileNode &fn);
-    void write(cv::FileStorage &fs) const;
+    void read(const FileNode &fn);
+    void write(FileStorage &fs) const;
 
     Feature() : x(0), y(0), label(0) {}
     Feature(int x, int y, int label);
@@ -34,18 +39,18 @@ struct Template
     int pyramid_level;
     std::vector<Feature> features;
 
-    void read(const cv::FileNode &fn);
-    void write(cv::FileStorage &fs) const;
+    void read(const FileNode &fn);
+    void write(FileStorage &fs) const;
 };
 
 class ColorGradientPyramid
 {
 public:
-    ColorGradientPyramid(const cv::Mat &src, const cv::Mat &mask,
+    ColorGradientPyramid(const Mat &src, const Mat &mask,
                                              float weak_threshold, size_t num_features,
                                              float strong_threshold);
 
-    void quantize(cv::Mat &dst) const;
+    void quantize(Mat &dst) const;
 
     bool extractTemplate(Template &templ) const;
 
@@ -68,13 +73,13 @@ public:
         float score;
     };
 
-    cv::Mat src;
-    cv::Mat mask;
+    Mat src;
+    Mat mask;
 
     int pyramid_level;
-    cv::Mat angle;
-    cv::Mat magnitude;
-    cv::Mat angle_ori;
+    Mat angle;
+    Mat magnitude;
+    Mat angle_ori;
 
     float weak_threshold;
     size_t num_features;
@@ -96,12 +101,12 @@ public:
     float weak_threshold;
     size_t num_features;
     float strong_threshold;
-    void read(const cv::FileNode &fn);
-    void write(cv::FileStorage &fs) const;
+    void read(const FileNode &fn);
+    void write(FileStorage &fs) const;
 
-    cv::Ptr<ColorGradientPyramid> process(const cv::Mat src, const cv::Mat &mask = cv::Mat()) const
+    Ptr<ColorGradientPyramid> process(const Mat src, const Mat &mask = Mat()) const
     {
-        return cv::makePtr<ColorGradientPyramid>(src, mask, weak_threshold, num_features, strong_threshold);
+        return makePtr<ColorGradientPyramid>(src, mask, weak_threshold, num_features, strong_threshold);
     }
 };
 
@@ -151,16 +156,16 @@ public:
     Detector(std::vector<int> T);
     Detector(int num_features, std::vector<int> T, float weak_thresh = 30.0f, float strong_thresh = 60.0f);
 
-    std::vector<Match> match(cv::Mat sources, float threshold,
+    std::vector<Match> match(Mat sources, float threshold,
                                                      const std::vector<std::string> &class_ids = std::vector<std::string>(),
-                                                     const cv::Mat masks = cv::Mat()) const;
+                                                     const Mat masks = Mat()) const;
 
-    int addTemplate(const cv::Mat sources, const std::string &class_id,
-                                    const cv::Mat &object_mask, int num_features = 0);
+    int addTemplate(const Mat sources, const std::string &class_id,
+                                    const Mat &object_mask, int num_features = 0);
 
-    int addTemplate_rotate(const std::string &class_id, int zero_id, float theta, cv::Point2f center);
+    int addTemplate_rotate(const std::string &class_id, int zero_id, float theta, Point2f center);
 
-    const cv::Ptr<ColorGradient> &getModalities() const { return modality; }
+    const Ptr<ColorGradient> &getModalities() const { return modality; }
 
     int getT(int pyramid_level) const { return T_at_level[pyramid_level]; }
 
@@ -185,7 +190,7 @@ public:
     void writeClasses(const std::string &format = "templates_%s.yml.gz") const;
 
 protected:
-    cv::Ptr<ColorGradient> modality;
+    Ptr<ColorGradient> modality;
     int pyramid_levels;
     std::vector<int> T_at_level;
 
@@ -198,7 +203,7 @@ protected:
     typedef std::vector<std::vector<LinearMemories>> LinearMemoryPyramid;
 
     void matchClass(const LinearMemoryPyramid &lm_pyramid,
-                                    const std::vector<cv::Size> &sizes,
+                                    const std::vector<Size> &sizes,
                                     float threshold, std::vector<Match> &matches,
                                     const std::string &class_id,
                                     const std::vector<TemplatePyramid> &template_pyramids) const;
@@ -231,27 +236,31 @@ public:
     };
     std::vector<Info> infos;
 
-    shapeInfo_producer(cv::Mat src, cv::Mat mask = cv::Mat()){
+    shapeInfo_producer(Mat src, Mat mask = Mat()){
         this->src = src;
         if(mask.empty()){
             // make sure we have masks
-            this->mask = cv::Mat(src.size(), CV_8UC1, {255});
+            this->mask = Mat(src.size(), CV_8UC1, {255});
         }else{
             this->mask = mask;
         }
     }
 
-    static cv::Mat transform(cv::Mat src, float angle, float scale){
-        cv::Mat dst;
+    static Mat transform(Mat src, float angle, float scale){
+        Mat dst;
 
-        cv::Point2f center(src.cols/2.0f, src.rows/2.0f);
-        cv::Mat rot_mat = cv::getRotationMatrix2D(center, angle, scale);
-        cv::warpAffine(src, dst, rot_mat, src.size());
+        Point2f center(src.cols/2.0f, src.rows/2.0f);
+        Mat rot_mat = getRotationMatrix2D(center, angle, scale);
+        
+        // 调整输出图像大小以匹配缩放比例
+        Size dst_size(cvRound(src.cols * scale), cvRound(src.rows * scale));
+        // 使用INTER_LINEAR插值保持更多特征，对于边缘特征可考虑使用INTER_CUBIC
+        warpAffine(src, dst, rot_mat, dst_size, INTER_LINEAR, BORDER_REPLICATE);
 
         return dst;
     }
     static void save_infos(std::vector<shapeInfo_producer::Info>& infos, std::string path = "infos.yaml"){
-        cv::FileStorage fs(path, cv::FileStorage::WRITE);
+        FileStorage fs(path, FileStorage::WRITE);
 
         fs << "infos"
            << "[";
@@ -265,12 +274,12 @@ public:
         fs << "]";
     }
     static std::vector<Info> load_infos(std::string path = "info.yaml"){
-        cv::FileStorage fs(path, cv::FileStorage::READ);
+        FileStorage fs(path, FileStorage::READ);
 
         std::vector<Info> infos;
 
-        cv::FileNode infos_fn = fs["infos"];
-        cv::FileNodeIterator it = infos_fn.begin(), it_end = infos_fn.end();
+        FileNode infos_fn = fs["infos"];
+        FileNodeIterator it = infos_fn.begin(), it_end = infos_fn.end();
         for (int i = 0; it != it_end; ++it, i++)
         {
             infos.emplace_back(float((*it)["angle"]), float((*it)["scale"]));

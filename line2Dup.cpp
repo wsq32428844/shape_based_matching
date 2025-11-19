@@ -397,19 +397,21 @@ void ColorGradientPyramid::update()
 void ColorGradientPyramid::pyrDown()
 {
     // Some parameters need to be adjusted
-    num_features /= 2; /// @todo Why not 4?
+    // num_features /= 2; /// @todo Why not 4? - 注释掉特征量减少，避免特征丢失
     ++pyramid_level;
 
     // Downsample the current inputs
     Size size(src.cols / 2, src.rows / 2);
     Mat next_src;
-    cv::pyrDown(src, next_src, size);
+    // pyrDown默认使用拉普拉斯金字塔插值，不支持直接指定INTER_LINEAR
+    cv::pyrDown(src, next_src, size, cv::BORDER_DEFAULT);
     src = next_src;
 
     if (!mask.empty())
     {
         Mat next_mask;
-        resize(mask, next_mask, size, 0.0, 0.0, INTER_NEAREST);
+        // 掩码缩放仍使用INTER_NEAREST保持二值特性
+        resize(mask, next_mask, size, 0.0, 0.0, cv::INTER_NEAREST);
         mask = next_mask;
     }
 
